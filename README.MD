@@ -1,3 +1,5 @@
-BOB
+#B.O.B. - Barely Operational Bot
 
-TEST
+Code - Robot Code
+Model - CAD model
+Design - Design/Idea files
