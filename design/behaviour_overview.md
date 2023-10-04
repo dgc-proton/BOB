@@ -1,5 +1,6 @@
 # B.O.B. Behaviour Overview
 
+
 ```mermaid
 stateDiagram-v2
 
@@ -23,6 +24,7 @@ stateDiagram-v2
     steer_power --> line_detect
 ```
 
+
 # Navigation
 
 ### Inputs
@@ -31,9 +33,13 @@ stateDiagram-v2
 * line sensors (IR x 4)
 * object sensors (ultrasonic x ?)
 
+
 ### Map
 
-Array that tracks the location of the bot, opponent (or last known location of opponent) and lines. As time passes localization gets less accurate, so should we remove or de-value data as it gets older? The location of the bot can be tracked by array indices giving the cell that the centre of the robot is in, and a vector for the direction it is facing.
+Array that tracks the location of the bot, opponent (or last known location of opponent) and lines. As time passes localization gets less accurate, so should we remove or de-value data as it gets older? The location of the bot can be tracked by array indices giving the cell that the centre of the robot is in, and a unit vector for the direction it is facing.
+
+Information on where the various sensors are (for object and line detection) located in relation to the centre of the bot will be needed to accurately update the map with the location of lines & opponent distance.
+
 
 ### Path
 
