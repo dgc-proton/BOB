@@ -11,5 +11,3 @@ Design - Design/Idea files
 - give descriptive commit messages
 - keep commits small & often when possible (or when we remember!)
 - use branches & merge changes form origin/main into the branch regularly
-
-Test
