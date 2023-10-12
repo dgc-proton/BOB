@@ -67,13 +67,13 @@ struct Sensors {
 	float object_right = 400.0;
   bool line_left = false;
   bool line_right = false;
-} sensor_readings;  // the variable name
+} g_sensor_readings;  // the variable name
 // stores commands for motor power and steering
 struct MotorCommands {
   bool turn_left;
   bool turn_right;
   int motor_power;  // negative for reverse
-} motor_commands;  // the variable name
+} g_motor_commands;  // the variable name
 
 /******************
 Function Prototypes
@@ -149,14 +149,14 @@ void loop() {
   line_check();
 
 	// move away if lines detected
-	if(sensor_readings.line_left && sensor_readings.line_right) {
+	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
 		reverse_escape();
-	} else if(sensor_readings.line_left) {
-		motor_commands.turn_right = true;
-    motor_commands.turn_left = false;
-	} else if(sensor_readings.line_right) {
-		motor_commands.turn_right = false;
-    motor_commands.turn_left = true;
+	} else if(g_sensor_readings.line_left) {
+		g_motor_commands.turn_right = true;
+    g_motor_commands.turn_left = false;
+	} else if(g_sensor_readings.line_right) {
+		g_motor_commands.turn_right = false;
+    g_motor_commands.turn_left = true;
 	}
   update_motor();
 
@@ -175,14 +175,14 @@ void loop() {
 void line_check() {
   // check for lines
   if(analogRead(LINE_LEFT_PIN) >= g_line_left_threshold) {
-		sensor_readings.line_left = true;
+		g_sensor_readings.line_left = true;
 	} else {
-    sensor_readings.line_left = false;
+    g_sensor_readings.line_left = false;
   }
 	if(analogRead(LINE_RIGHT_PIN) >= g_line_right_threshold) {
-		sensor_readings.line_right = true;
+		g_sensor_readings.line_right = true;
 	} else {
-    sensor_readings.line_right = false;
+    g_sensor_readings.line_right = false;
   }
 }
 
