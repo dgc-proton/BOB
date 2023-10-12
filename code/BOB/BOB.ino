@@ -144,7 +144,6 @@ Main Code
 
 void loop() {
   // put your main code here, to run repeatedly:
-	bool line_left = false, line_right = false;
 
 	// check for lines
   line_check();
