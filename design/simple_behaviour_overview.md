@@ -31,7 +31,7 @@ stateDiagram-v2
 ### Inputs
 
 * line sensors (IR x 2)
-* object sensors (ultrasonic x ?)
+* object sensors (ultrasonic x 4)
 
 
 ### Map
