@@ -14,6 +14,8 @@
 * 	- use spaces around operators, apart from in arguments
 * 	- first open brace { on same line, closing brace } a line by itself
 * 	- keep things simple and readable
+* 
+* NB: With our board, may have to hold 'BOOT' Switch when uploading sketch
 */
 
 
