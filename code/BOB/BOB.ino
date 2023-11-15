@@ -240,6 +240,31 @@ void search_opponent() {
 
 void update_motor() {
 	// logic to update output values to motor based on global variable values
+	// Sets directions for both motors. true value means forward, false value means reverse
+	/* if(g_motor_commands.turn_left && !g_motor_commands.turn_right) {
+		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
+		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
+		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
+		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
+	}
+	else if(!g_motor_commands.turn_left && g_motor_commands.turn_right) {
+		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
+		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_2, HIGH;
+	}
+	else if(g_motor_commands.turn_left && g_motor_commands.turn_right) {
+		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
+		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
+		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
+	}
+	else {
+		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
+		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
+		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
+	} */
 }
 
 
