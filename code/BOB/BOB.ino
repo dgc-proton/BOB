@@ -76,7 +76,11 @@ struct MotorCommands {
 	bool turn_right;
 	int motor_power;  // negative for reverse
 } g_motor_commands;  // the variable name
-
+// ints that can be used to define g_motor_commands.motor_power
+int low_power_fw = 50;
+int high_power_fw = 255;
+int low_power_rev = -50;
+int high_power_rev = -255;
 /******************
 Function Prototypes
 *******************/
@@ -190,6 +194,32 @@ void line_check() {
 
 void reverse_escape(){
 	// does a quick reverse, a turn, then returns control of motor and steering to normal
+	// sets motors to reverse direction, delays to make sure it gets somewhere before checking for next loop iteration. completes a line check and iteration of loop done if line check still returns positive
+	do {
+		g_motor_commands.turn_left = true;
+		g_motor_commands.turn_right = true;
+		// revers set to high speed so can counter forward momentum if needed. wip
+		g_motor_commands.motor_power = high_power_rev;
+		update_motor();
+		delay(100);
+		line_check();
+	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
+	// does right side turn, slow speed to reduce slip, completes line check, iteration only takes place if either line is no longer seen. if both lines are seen, recurses reverse_escape().
+	// How does it know its facing forwards, or should it go to opponent check as soon as line isnt seen?
+	// do {
+		g_motor_commands.turn_right = true;
+		g_motor_commands.turn_left = false;
+		g_motor_commands.motor_power = low_power_fw;
+		delay(500);
+		line_check();
+		if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
+			reverse_escape();
+		}
+	// } while((g_sensor_readings.line_left && !g_sensor_readings.line_right) || (!g_sensor_readings.line_left && g_sensor_readings.line_right));
+	// wip if needed here or in do while loop
+	// if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
+	//		reverse_escape();
+	// }
 }
 
 
