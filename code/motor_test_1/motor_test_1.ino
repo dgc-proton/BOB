@@ -8,6 +8,8 @@
 #define RMOTOR_DIR_PIN_2 34
 #define RMOTOR_CORRECTION_FACTOR 1
 
+#define DELAY_TIME 5000
+
 int motorPower;
 bool rmotor_dir;
 bool lmotor_dir;
@@ -44,7 +46,7 @@ void turn_left() {
 }
 
 void setup() {
-	Serial.begin(9600);
+	Serial.begin(115200);
 	//Motor Output Pins
 	pinMode (LMOTOR_DIR_PIN_1, OUTPUT);
 	pinMode (LMOTOR_DIR_PIN_2, OUTPUT);
@@ -62,30 +64,36 @@ void setup() {
 
 void loop(){
 	//High Speed LMotor Forwards
+  Serial.println("High Speed LMotor Forwards");
 	motorPower = 255;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
 	//Low Speed LMotor Forwards
+  Serial.println("Low Speed LMotor Forwards");
 	motorPower = 50;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
 	//Stop LMotor
+  Serial.println("Stop LMotor");
 	motorPower = 0;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay(2000);
+	delay(DELAY_TIME);
 	
 	//High Speed RMotor Forwards
+  Serial.println("High Speed RMotor Forwards");
 	motorPower = 255;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
 	//Low Speed RMotor Forwards
+  Serial.println("Low Speed RMotor Forwards");
 	motorPower = 50;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
 	//Stop RMotor
+  Serial.println("Stop RMotor");
 	motorPower = 0;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay(2000);
+	delay(DELAY_TIME);
 	
 	//Reverse Directions
 	digitalWrite (LMOTOR_DIR_PIN_1, HIGH);
@@ -94,44 +102,63 @@ void loop(){
 	digitalWrite (RMOTOR_DIR_PIN_2, LOW);
 	
 	//Same routine as forwards
+  Serial.println("High Speed LMotor Backwards");
 	motorPower = 255;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
+  Serial.println("Low Speed LMotor Backwards");
 	motorPower = 50;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
+  Serial.println("Stop LMotor");
 	motorPower = 0;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
-	delay(2000);
+	delay(DELAY_TIME);
 	
+  Serial.println("High Speed RMotor Backwards");
 	motorPower = 255;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
+  Serial.println("Low Speed RMotor Backwards");
 	motorPower = 50;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay (2000);
+	delay (DELAY_TIME);
+  Serial.println("Stop RMotor");
 	motorPower = 0;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
-	delay(2000);
+	delay(DELAY_TIME);
 	
+  Serial.println("Turn Right Routine");
 	turn_right();
 
+  Serial.println("Stop Both Motor");
+	motorPower = 0;
+	analogWrite (LMOTOR_PWM_PIN, motorPower);
+  analogWrite (RMOTOR_PWM_PIN, motorPower);
+
+  Serial.println("Set L & R Motors to Max");
 	motorPower = 255;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
 	
 	motorPower = 255;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
 	
-	delay(2000);
+	delay(DELAY_TIME);
 	
-	
+  Serial.println("Stop Both Motor");
+	motorPower = 0;
+	analogWrite (LMOTOR_PWM_PIN, motorPower);
+  analogWrite (RMOTOR_PWM_PIN, motorPower);
+
+	Serial.println("Turn Left Routine");
 	turn_left();
-	
+
+  Serial.println("Set L & R Motors to Max");
 	motorPower = 255;
 	analogWrite (LMOTOR_PWM_PIN, motorPower);
 	
 	motorPower = 255;
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
 	
-	delay(2000);
+	delay(DELAY_TIME);
 }
