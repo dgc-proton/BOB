@@ -1,9 +1,10 @@
 // IR line sensors
-#define LINE_LEFT_PIN A0
-#define LINE_LEFT_POWER_PIN 12
-#define LINE_RIGHT_PIN A1
-#define LINE_RIGHT_POWER_PIN 13
+#define LINE_LEFT_PIN 34
+#define LINE_LEFT_POWER_PIN 18
+#define LINE_RIGHT_PIN 35
+#define LINE_RIGHT_POWER_PIN 19
 #define LINE_REFLECTION_MULTIPLIER 2  // defines how high the threshold is between detecting ring surface and outside line, ignoring ambient light
+
 
 
 /***********
@@ -42,6 +43,8 @@ Setup Code
 **********/
 void setup() {
 	// put your setup code here, to run once:
+  Serial.begin(115200);
+
 	bool success;
 
 	// set sensor pin modes
@@ -73,9 +76,9 @@ void loop() {
 	// check for lines
 	line_check();
 	Serial.println("Line left:");
-	Serial.println(Sensors.line_left);
+	Serial.println(g_sensor_readings.line_left);
 	Serial.println("Line right:");
-	Serial.println(Sensors.line_right);
+	Serial.println(g_sensor_readings.line_right);
 	Serial.println("**********");
   delay(1000);
 }
