@@ -3,9 +3,9 @@
 #define LMOTOR_DIR_PIN_2 14
 #define LMOTOR_CORRECTION_FACTOR 1
 
-#define RMOTOR_PWM_PIN 32
-#define RMOTOR_DIR_PIN_1 35
-#define RMOTOR_DIR_PIN_2 34
+#define RMOTOR_PWM_PIN 15
+#define RMOTOR_DIR_PIN_1 2
+#define RMOTOR_DIR_PIN_2 4
 #define RMOTOR_CORRECTION_FACTOR 1
 
 #define DELAY_TIME 5000
@@ -63,6 +63,10 @@ void setup() {
 }
 
 void loop(){
+  digitalWrite (LMOTOR_DIR_PIN_1, LOW);
+	digitalWrite (LMOTOR_DIR_PIN_2, HIGH);
+	digitalWrite (RMOTOR_DIR_PIN_1, LOW);
+	digitalWrite (RMOTOR_DIR_PIN_2, HIGH);
 	//High Speed LMotor Forwards
   Serial.println("High Speed LMotor Forwards");
 	motorPower = 255;
@@ -161,4 +165,12 @@ void loop(){
 	analogWrite (RMOTOR_PWM_PIN, motorPower);
 	
 	delay(DELAY_TIME);
+
+  Serial.println("Stop Both Motors");
+  motorPower = 0;
+  analogWrite (RMOTOR_PWM_PIN, motorPower);
+  analogWrite (LMOTOR_PWM_PIN, motorPower);
+
+  delay(DELAY_TIME);
+
 }
