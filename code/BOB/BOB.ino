@@ -16,6 +16,9 @@
 * 	- keep things simple and readable
 * 
 * NB: With our board, may have to hold 'BOOT' Switch when uploading sketch
+*
+* ERROR CODES BUILTIN LED: (REPEAT ERROR CODES 10 TIMES USING for(j) LOOP, AND for(i) LOOP FOR ERROR CODE) 
+* 1: . . . . .
 */
 
 
@@ -23,17 +26,17 @@
 Definitions
 ***********/
 // left motor
-#define LMOTOR_PWM_PIN   3
-#define LMOTOR_DIR_PIN_1 4 
-#define LMOTOR_DIR_PIN_2 6
+#define LMOTOR_PWM_PIN   13
+#define LMOTOR_DIR_PIN_1 12 
+#define LMOTOR_DIR_PIN_2 14
 #define LMOTOR_CORRECTION_FACTOR 1  // must be <=1
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
 #endif
 // right motor
-#define RMOTOR_PWM_PIN   5
-#define RMOTOR_DIR_PIN_1 7 
-#define RMOTOR_DIR_PIN_2 8
+#define RMOTOR_PWM_PIN   15
+#define RMOTOR_DIR_PIN_1 2 
+#define RMOTOR_DIR_PIN_2 4
 #define RMOTOR_CORRECTION_FACTOR 1  // must be <=1
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -72,25 +75,24 @@ struct Sensors {
 } g_sensor_readings;  // the variable name
 // stores commands for motor power and steering
 struct MotorCommands {
-	bool turn_left;
-	bool turn_right;
+	int turn; // -1 for left; 1 for right; 0 for straight.
+	bool forward; // true for forward, false for reverse
 	int motor_power;  // negative for reverse
 } g_motor_commands;  // the variable name
-// ints that can be used to define g_motor_commands.motor_power
-int low_power_fw = 50;
-int high_power_fw = 255;
-int low_power_rev = -50;
-int high_power_rev = -255;
 /******************
 Function Prototypes
 *******************/
+void line_check(void);
 void reverse_escape(void);
 void opponent_check(void);
 void turn_opponent(void);
 void search_opponent(void);
 void update_motor(void);
+void turn_left(void);
+void turn_right(void);
+void dir_forward(void);
+void dir_reverse(void);
 bool calibrate_line_sensors(void);
-
 
 /*********
 Setup Code
@@ -116,10 +118,7 @@ void setup() {
 	pinMode(LINE_RIGHT_POWER_PIN, OUTPUT);
 
 	// set motors in forward direction
-	digitalWrite(LMOTOR_DIR_PIN_1, LOW);
-	digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
-	digitalWrite(RMOTOR_DIR_PIN_1, LOW);
-	digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
+	dir_forward();
 
 	while(true) {
 		// calibrate the line sensors for the current ambient lighting, then switch them on
@@ -158,14 +157,10 @@ void loop() {
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
-		g_motor_commands.turn_right = true;
-		g_motor_commands.turn_left = false;
+		turn_right()
 	} else if(g_sensor_readings.line_right) {
-		g_motor_commands.turn_right = false;
-		g_motor_commands.turn_left = true;
+		turn_left
 	}
-	update_motor();
-
 	// check for opponents
 	// TODO
 
@@ -196,10 +191,9 @@ void reverse_escape(){
 	// does a quick reverse, a turn, then returns control of motor and steering to normal
 	// sets motors to reverse direction, delays to make sure it gets somewhere before checking for next loop iteration. completes a line check and iteration of loop done if line check still returns positive
 	do {
-		g_motor_commands.turn_left = true;
-		g_motor_commands.turn_right = true;
+		dir_reverse();
 		// revers set to high speed so can counter forward momentum if needed. wip
-		g_motor_commands.motor_power = high_power_rev;
+		g_motor_commands.motor_power = 255;
 		update_motor();
 		delay(100);
 		line_check();
@@ -207,9 +201,9 @@ void reverse_escape(){
 	// does right side turn, slow speed to reduce slip, completes line check, iteration only takes place if either line is no longer seen. if both lines are seen, recurses reverse_escape().
 	// How does it know its facing forwards, or should it go to opponent check as soon as line isnt seen?
 	// do {
-		g_motor_commands.turn_right = true;
-		g_motor_commands.turn_left = false;
-		g_motor_commands.motor_power = low_power_fw;
+		turn_right();
+		g_motor_commands.motor_power = 50;
+		update_motor();
 		delay(500);
 		line_check();
 		if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
@@ -241,30 +235,66 @@ void search_opponent() {
 void update_motor() {
 	// logic to update output values to motor based on global variable values
 	// Sets directions for both motors. true value means forward, false value means reverse
-	/* if(g_motor_commands.turn_left && !g_motor_commands.turn_right) {
+	if(g_motor_commands.turn == -1) {
+		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
+		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
+		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
+	} else if(g_motor_commands.turn == 1) {
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
-	}
-	else if(!g_motor_commands.turn_left && g_motor_commands.turn_right) {
-		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
-		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
-		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
-		digitalWrite(RMOTOR_DIR_PIN_2, HIGH;
-	}
-	else if(g_motor_commands.turn_left && g_motor_commands.turn_right) {
+	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == true) {
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
-	}
-	else {
+	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == false) {
 		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
-	} */
+	}
+	// ERROR CODE 1
+	else {
+		for (j = 0; j < 10; j++) {
+			for (i = 0; i < 5; i++) {
+				digitalWrite(LED_BUILTIN, LOW);
+				delay (50);
+				digitalWrite(LED_BUILTIN, HIGH);
+				delay(50);
+				digitalWrite(LED_BUILTIN, LOW);
+			}
+			delay(1000);
+		}
+	
+	digitalWrite(LMOTOR_PWM_PIN, g_motor_commands.motor_power);
+	digitalWrite(RMOTOR_PWM_PIN, g_motor_commands.motor_power);
+}
+
+void turn_left() {
+	g_motor_commands.turn = -1;
+	g_motor_commands.forward = true;
+	update_motor();
+}
+
+void turn_right() {
+	g_motor_commands.turn = 1;
+	g_motor_commands.forward = true;
+	update_motor();
+}
+
+void dir_forward() {
+	g_motor_commands.turn = 0;
+	g_motor_commands.forward = true;
+	update_motor();
+}
+
+void dir_reverse() {
+	g_motor_commands.turn = 0;
+	g_motor_commands.forward = false;
+	update_motor();
 }
 
 
