@@ -17,8 +17,8 @@
 * 
 * NB: With our board, may have to hold 'BOOT' Switch when uploading sketch
 *
-* ERROR CODES BUILTIN LED: (REPEAT ERROR CODES 10 TIMES USING for(j) LOOP, AND for(i) LOOP FOR ERROR CODE) 
-* 1: . . . . .
+* ERROR CODES BUILTIN LED: (REPEAT ERROR CODES 10 TIMES IN 1 SEC INTERVALS (?) USING for(j) LOOP, AND for(i) LOOP FOR ERROR CODE) 
+* 1: . . . . . : Issue with update_motor, g_motor_commands has conflicting/erroneous values. Either turn is not within [-1, 1] or direction says reverse, but turn is not set to straight (0) {while this is possible to implement, it is rather confusing}. Hopefully code logic should never bring such a situation.
 */
 
 
@@ -76,7 +76,7 @@ struct Sensors {
 // stores commands for motor power and steering
 struct MotorCommands {
 	int turn; // -1 for left; 1 for right; 0 for straight.
-	bool forward; // true for forward, false for reverse
+	bool forward; // true for forward, false for reverse. Can only be in reverse if turn is set to 0, or straight! Not allowing a reverse turning possibility, since doing an on the spot turn anyways.
 	int motor_power;  // negative for reverse
 } g_motor_commands;  // the variable name
 /******************
