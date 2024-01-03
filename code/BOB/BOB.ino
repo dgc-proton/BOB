@@ -84,6 +84,7 @@ Function Prototypes
 *******************/
 void line_check(void);
 void reverse_escape(void);
+void single_side_escape(void);
 void opponent_check(void);
 void turn_opponent(void);
 void search_opponent(void);
@@ -187,7 +188,7 @@ void line_check() {
 }
 
 
-void reverse_escape(){
+void reverse_escape() {
 	// does a quick reverse, a turn, then returns control of motor and steering to normal
 	// sets motors to reverse direction, delays to make sure it gets somewhere before checking for next loop iteration. completes a line check and iteration of loop done if line check still returns positive
 	do {
@@ -216,6 +217,9 @@ void reverse_escape(){
 	// }
 }
 
+void single_side_escape() {
+	// escape when line is detected only on single side
+}
 
 void opponent_check() {
 	// updates sensor readings in the global variable
