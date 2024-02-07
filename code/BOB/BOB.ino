@@ -84,10 +84,7 @@ Function Prototypes
 *******************/
 void line_check(void);
 void reverse_escape(void);
-void single_side_escape(void);
-void opponent_check(void);
-void turn_opponent(void);
-void search_opponent(void);
+void search_attack(void);
 void update_motor(void);
 void turn_left(void);
 void turn_right(void);
@@ -214,18 +211,9 @@ void reverse_escape() {
 	// }
 }
 
-void opponent_check() {
-	// updates sensor readings in the global variable
-}
 
-
-void turn_opponent() {
-	//turn through steer fx until minimum distance on front sensor to opponent is found, and then power fx
-}
-
-
-void search_opponent() {
-	//steer to find opponent, only go to this fx if opponent not detected in opponent_check
+void search_attack() {
+	// searches for the opponent, if opponent found will accelerate full speed at them
 }
 
 
