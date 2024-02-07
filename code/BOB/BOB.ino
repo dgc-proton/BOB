@@ -192,20 +192,17 @@ void reverse_escape() {
 	// does a quick reverse, a turn, then returns control of motor and steering to normal
 	// sets motors to reverse direction, delays to make sure it gets somewhere before checking for next loop iteration. completes a line check and iteration of loop done if line check still returns positive
 	do {
+		g_motor_commands.motor_power = 255;
 		dir_reverse();
 		// revers set to high speed so can counter forward momentum if needed. wip
-		g_motor_commands.motor_power = 255;
-		update_motor();
 		delay(100);
 		line_check();
 	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
 	// does right side turn, slow speed to reduce slip, completes line check, iteration only takes place if either line is no longer seen. if both lines are seen, recurses reverse_escape().
 	// How does it know its facing forwards, or should it go to opponent check as soon as line isnt seen?
 	// do {
-		turn_right();
 		g_motor_commands.motor_power = 50;
-		update_motor();
-		delay(500);
+		turn_right();
 		line_check();
 		if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
 			reverse_escape();
