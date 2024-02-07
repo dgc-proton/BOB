@@ -214,10 +214,6 @@ void reverse_escape() {
 	// }
 }
 
-void single_side_escape() {
-	// escape when line is detected only on single side
-}
-
 void opponent_check() {
 	// updates sensor readings in the global variable
 }
