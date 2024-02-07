@@ -213,7 +213,41 @@ void reverse_escape() {
 
 
 void search_attack() {
-	// searches for the opponent, if opponent found will accelerate full speed at them
+	// searches for the opponent, if opponent found to be in range will accelerate full speed at them
+	if(g_sensor_readings.line_left || g_sensor_readings.line_right){
+		// If lines are detected, return to the calling function
+		return;
+	}
+	float left_minus_right = g_sensor_readings.left - g_sensor_readings.right;
+	if(min(g_sensor_readings.left, g_sensor_readings.right) > 77){
+		// the enemy is not in range, turn in the direction they were last seen
+		if(left_minus_right > 0){
+			g_motor_commands.motor_power = 60;
+			turn_left();
+			return;
+		}else{
+			g_motor_commands.motor_power = 60;
+			turn_right();
+			return;
+		}
+	}
+	// If we haven't returned to the caller yet then the enemy is in range
+	if(abs(left_minus_right) < 2){
+		// If the enemy is pretty much in front of us, CHARGE!
+		g_motor_commands.motor_power = 255;
+		dir_forward();
+		return;
+	}
+	// If we haven't charged then we need to turn to face the enemy better
+	if(left_minus_right > 0){
+		g_motor_commands.motor_power = 60;
+		turn_left();
+		return;
+	}else{
+		g_motor_commands.motor_power = 60;
+		turn_right();
+		return;
+	}
 }
 
 
