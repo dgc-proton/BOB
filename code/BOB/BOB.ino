@@ -67,9 +67,9 @@ Global Variables
 int g_line_left_threshold, g_line_right_threshold;
 // to store readings from the ultrasonic sensors
 struct Sensors {
-	float object_front = 400.0;
 	float object_left = 400.0;
 	float object_right = 400.0;
+	float last_seen_right = true;
 	bool line_left = false;
 	bool line_right = false;
 } g_sensor_readings;  // the variable name
@@ -85,6 +85,7 @@ Function Prototypes
 void line_check(void);
 void reverse_escape(void);
 void search_attack(void);
+void update_object_sensors(void);
 void update_motor(void);
 void turn_left(void);
 void turn_right(void);
@@ -184,6 +185,11 @@ void line_check() {
 	}
 }
 
+void update_object_sensors() {
+	// Updates the global struct with readings from the object sensors. If sight of
+	// the enemy is lost, also updates the history of direction enemy was last seen in
+	TODO
+}
 
 void reverse_escape() {
 	// does a quick reverse, a turn, then returns control of motor and steering to normal
@@ -218,20 +224,20 @@ void search_attack() {
 		// If lines are detected, return to the calling function
 		return;
 	}
-	float left_minus_right = g_sensor_readings.left - g_sensor_readings.right;
-	if(min(g_sensor_readings.left, g_sensor_readings.right) > 77){
+	if(min(g_sensor_readings.left, g_sensor_readings.right) > RING_SIZE){
 		// the enemy is not in range, turn in the direction they were last seen
-		if(left_minus_right > 0){
+		if(g_sensor_readings.last_seen_right){
 			g_motor_commands.motor_power = 60;
-			turn_left();
+			turn_right();
 			return;
 		}else{
 			g_motor_commands.motor_power = 60;
-			turn_right();
+			turn_left();
 			return;
 		}
 	}
 	// If we haven't returned to the caller yet then the enemy is in range
+	float left_minus_right = g_sensor_readings.left - g_sensor_readings.right;
 	if(abs(left_minus_right) < 2){
 		// If the enemy is pretty much in front of us, CHARGE!
 		g_motor_commands.motor_power = 255;
