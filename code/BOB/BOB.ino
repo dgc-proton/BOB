@@ -53,7 +53,14 @@ Definitions
 // object sensors
 #define RING_SIZE 77
 
+#define LOBJSENSOR_TRIG A2
+#define LOBJSENSOR_ECHO A3
 
+#define ROBJSENSOR_TRIG A4
+#define ROBJSENSOR_ECHO A5
+
+// Built-in LED
+#define LED_BUILTIN 2
 /***********
 Header Files
 ************/
@@ -156,9 +163,9 @@ void loop() {
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
-		turn_right()
+		turn_right();
 	} else if(g_sensor_readings.line_right) {
-		turn_left
+		turn_left();
 	}
 	// check for opponents
 	// TODO
@@ -188,7 +195,36 @@ void line_check() {
 void update_object_sensors() {
 	// Updates the global struct with readings from the object sensors. If sight of
 	// the enemy is lost, also updates the history of direction enemy was last seen in
-	TODO
+	// TODO
+	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	digitalWrite(ROBJSENSOR_TRIG, LOW);
+	delayMicroseconds(2);
+	
+	digitalWrite(LOBJSENSOR_TRIG, HIGH);
+	digitalWrite(ROBJSENSOR_TRIG, HIGH);
+	delayMicroseconds(10);
+	
+	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	digitalWrite(ROBJSENSOR_TRIG, LOW);
+	
+	// CHECK IF THIS WORKS, IF NOT MAY HAVE TO SEND TRIGGER SIGNALS ONE BY ONE FOR L AND R
+	int Lduration = pulseIn(LOBJSENSOR_ECHO, HIGH);
+	int Rduration = pulseIn(ROBJSENSOR_ECHO, HIGH);
+	
+	float Ldistance = Lduration * 0.034/2;
+	float Rdistance = Rduration * 0.034/2;
+	
+	if(Ldistance > RING_SIZE && Rdistance > RING_SIZE) {
+		float left_right = Ldistance - Rdistance;
+		if(left_right >= 0) {
+			g_sensor_readings.last_seen_right = true;
+		} else if(left_right < 0) {
+			g_sensor_readings.last_seen_right = false;
+		}
+	}
+	g_sensor_readings.object_left = Ldistance;
+	g_sensor_readings.object_right = Rdistance;
+	return;
 }
 
 void reverse_escape() {
@@ -215,6 +251,7 @@ void reverse_escape() {
 	// if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
 	//		reverse_escape();
 	// }
+	return;
 }
 
 
@@ -224,7 +261,7 @@ void search_attack() {
 		// If lines are detected, return to the calling function
 		return;
 	}
-	if(min(g_sensor_readings.left, g_sensor_readings.right) > RING_SIZE){
+	if(min(g_sensor_readings.object_left, g_sensor_readings.object_right) > RING_SIZE){
 		// the enemy is not in range, turn in the direction they were last seen
 		if(g_sensor_readings.last_seen_right){
 			g_motor_commands.motor_power = 60;
@@ -237,7 +274,7 @@ void search_attack() {
 		}
 	}
 	// If we haven't returned to the caller yet then the enemy is in range
-	float left_minus_right = g_sensor_readings.left - g_sensor_readings.right;
+	float left_minus_right = g_sensor_readings.object_left - g_sensor_readings.object_right;
 	if(abs(left_minus_right) < 2){
 		// If the enemy is pretty much in front of us, CHARGE!
 		g_motor_commands.motor_power = 255;
@@ -283,8 +320,8 @@ void update_motor() {
 	}
 	// ERROR CODE 1
 	else {
-		for (j = 0; j < 10; j++) {
-			for (i = 0; i < 5; i++) {
+		for (int j = 0; j < 10; j++) {
+			for (int i = 0; i < 5; i++) {
 				digitalWrite(LED_BUILTIN, LOW);
 				delay (50);
 				digitalWrite(LED_BUILTIN, HIGH);
@@ -293,9 +330,10 @@ void update_motor() {
 			}
 			delay(1000);
 		}
-	
+	}
 	digitalWrite(LMOTOR_PWM_PIN, g_motor_commands.motor_power);
 	digitalWrite(RMOTOR_PWM_PIN, g_motor_commands.motor_power);
+	return;
 }
 
 void turn_left() {
