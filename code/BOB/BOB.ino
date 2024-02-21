@@ -45,19 +45,19 @@ Definitions
 #define MOTORMIN 60  // to account for deadband of motors, set based on motor with largest deadband
 #define TURNING_FACTOR_FAST 50  // amount of PWM to decrease the turning wheel by when driving quickly
 // IR line sensors
-#define LINE_LEFT_PIN A0
-#define LINE_LEFT_POWER_PIN 12
-#define LINE_RIGHT_PIN A1
-#define LINE_RIGHT_POWER_PIN 13
+#define LINE_LEFT_PIN 27
+#define LINE_LEFT_POWER_PIN 25
+#define LINE_RIGHT_PIN 26
+#define LINE_RIGHT_POWER_PIN 33
 #define LINE_REFLECTION_MULTIPLIER 2  // defines how high the threshold is between detecting ring surface and outside line, ignoring ambient light
 // object sensors
 #define RING_SIZE 77
 
-#define LOBJSENSOR_TRIG A2
-#define LOBJSENSOR_ECHO A3
+#define LOBJSENSOR_TRIG 16
+#define LOBJSENSOR_ECHO 17
 
-#define ROBJSENSOR_TRIG A4
-#define ROBJSENSOR_ECHO A5
+#define ROBJSENSOR_TRIG 5
+#define ROBJSENSOR_ECHO 18
 
 // Built-in LED
 #define LED_BUILTIN 2
@@ -122,6 +122,8 @@ void setup() {
 	// set sensor pin modes
 	pinMode(LINE_LEFT_POWER_PIN, OUTPUT);
 	pinMode(LINE_RIGHT_POWER_PIN, OUTPUT);
+	pinMode(LINE_LEFT_PIN, INPUT);
+	pinMode(LINE_RIGHT_PIN, INPUT);
 
 	// set motors in forward direction
 	dir_forward();
