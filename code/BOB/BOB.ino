@@ -197,18 +197,17 @@ void update_object_sensors() {
 	// the enemy is lost, also updates the history of direction enemy was last seen in
 	// TODO
 	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	delayMicroseconds(2);
+	digitalWrite(LOBJSENSOR_TRIG, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	int Lduration = pulseIn(LOBJSENSOR_ECHO, HIGH);
+	
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
-	
-	digitalWrite(LOBJSENSOR_TRIG, HIGH);
 	digitalWrite(ROBJSENSOR_TRIG, HIGH);
-	delayMicroseconds(10);
-	
-	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	delayMicroseconds(10)
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
-	
-	// CHECK IF THIS WORKS, IF NOT MAY HAVE TO SEND TRIGGER SIGNALS ONE BY ONE FOR L AND R
-	int Lduration = pulseIn(LOBJSENSOR_ECHO, HIGH);
 	int Rduration = pulseIn(ROBJSENSOR_ECHO, HIGH);
 	
 	float Ldistance = Lduration * 0.034/2;
