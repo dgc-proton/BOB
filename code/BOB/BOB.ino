@@ -79,13 +79,14 @@ struct Sensors {
 	float last_seen_right = true;
 	bool line_left = false;
 	bool line_right = false;
-} g_sensor_readings;  // the variable name
+} g_sensor_readings;  // the structure name
 // stores commands for motor power and steering
 struct MotorCommands {
 	int turn; // -1 for left; 1 for right; 0 for straight.
 	bool forward; // true for forward, false for reverse. Can only be in reverse if turn is set to 0, or straight! Not allowing a reverse turning possibility, since doing an on the spot turn anyways.
 	int motor_power;  // negative for reverse
-} g_motor_commands;  // the variable name
+} g_motor_commands;  // the structure name
+
 /******************
 Function Prototypes
 *******************/
@@ -155,7 +156,7 @@ void setup() {
 Main Code
 *********/
 
-void loop() {
+void loop() { //Main Control loop
 	// put your main code here, to run repeatedly:
 
 	// check for lines
@@ -398,9 +399,5 @@ bool calibrate_line_sensors() {
 	g_line_right_threshold = ceil((LINE_REFLECTION_MULTIPLIER * (ring_surface_right - ambient_light_right)) + ambient_light_right);
 
 	// return true if sucessful
-	if((g_line_left_threshold > 1) && (g_line_right_threshold > 1)) {
-		return true;
-	} else {
-		return false;
-	}
+	return (g_line_left_threshold > 1) && (g_line_right_threshold > 1);
 }
