@@ -17,7 +17,7 @@
 * 
 * NB: With our board, may have to hold 'BOOT' Switch when uploading sketch
 *
-* ERROR CODES BUILTIN LED: (REPEAT ERROR CODES 10 TIMES IN 1 SEC INTERVALS (?) USING for(j) LOOP, AND for(i) LOOP FOR ERROR CODE) 
+* ERROR CODES BUILTIN LED: (REPEAT ERROR CODES 10 TIMES IN 2 SEC INTERVALS (?))
 * 1: . . . . . : Issue with update_motor, g_motor_commands has conflicting/erroneous values. Either turn is not within [-1, 1] or direction says reverse, but turn is not set to straight (0) {while this is possible to implement, it is rather confusing}. Hopefully code logic should never bring such a situation.
 */
 
@@ -29,7 +29,8 @@ Definitions
 #define LMOTOR_PWM_PIN   13
 #define LMOTOR_DIR_PIN_1 12 
 #define LMOTOR_DIR_PIN_2 14
-#define LMOTOR_CORRECTION_FACTOR 1  // must be <=1
+const float LMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
+const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
 #endif
@@ -37,7 +38,8 @@ Definitions
 #define RMOTOR_PWM_PIN   15
 #define RMOTOR_DIR_PIN_1 2 
 #define RMOTOR_DIR_PIN_2 4
-#define RMOTOR_CORRECTION_FACTOR 1  // must be <=1
+const float RMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
+const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
 #endif
@@ -46,12 +48,12 @@ Definitions
 #define TURNING_FACTOR_FAST 50  // amount of PWM to decrease the turning wheel by when driving quickly
 // IR line sensors
 #define LINE_LEFT_PIN 27
-#define LINE_LEFT_POWER_PIN 25
-#define LINE_RIGHT_PIN 26
+#define LINE_LEFT_POWER_PIN 26
+#define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
 #define LINE_REFLECTION_MULTIPLIER 2  // defines how high the threshold is between detecting ring surface and outside line, ignoring ambient light
 // object sensors
-#define RING_SIZE 77
+#define RING_SIZE 770
 
 #define LOBJSENSOR_TRIG 16
 #define LOBJSENSOR_ECHO 17
@@ -74,8 +76,8 @@ Global Variables
 int g_line_left_threshold, g_line_right_threshold;
 // to store readings from the ultrasonic sensors
 struct Sensors {
-	float object_left = 400.0;
-	float object_right = 400.0;
+	float object_left = 4000.0;
+	float object_right = 4000.0;
 	float last_seen_right = true;
 	bool line_left = false;
 	bool line_right = false;
@@ -105,6 +107,7 @@ bool calibrate_line_sensors(void);
 Setup Code
 **********/
 void setup() {
+    Serial.begin(115200);
 	// put your setup code here, to run once:
 	bool success;
 
@@ -118,7 +121,13 @@ void setup() {
 	pinMode(LMOTOR_PWM_PIN, OUTPUT); 
 	pinMode(RMOTOR_DIR_PIN_1, OUTPUT);
 	pinMode(RMOTOR_DIR_PIN_2, OUTPUT);
-	pinMode(RMOTOR_PWM_PIN, OUTPUT); 
+	pinMode(RMOTOR_PWM_PIN, OUTPUT);
+	
+	// set object sensor pin modes
+	pinMode(LOBJSENSOR_TRIG, OUTPUT);
+	pinMode(LOBJSENSOR_ECHO, INPUT);
+	pinMode(ROBJSENSOR_TRIG, OUTPUT);
+	pinMode(ROBJSENSOR_ECHO, INPUT);
 
 	// set sensor pin modes
 	pinMode(LINE_LEFT_POWER_PIN, OUTPUT);
@@ -143,9 +152,9 @@ void setup() {
 	// blink LED to show setup completed sucessfully
 	for(int i=0; i<3; i++) {
 		digitalWrite(LED_BUILTIN, LOW);
-		delay(100);
+		delay(500);
 		digitalWrite(LED_BUILTIN, HIGH);
-		delay(100);
+		delay(500);
 		digitalWrite(LED_BUILTIN, LOW);
 	}
 }
@@ -158,18 +167,29 @@ Main Code
 
 void loop() { //Main Control loop
 	// put your main code here, to run repeatedly:
-
+	// Debug print statements added
 	// check for lines
 	line_check();
 
 	// move away if lines detected
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
+		Serial.println("Rev Escape");		
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
+		Serial.println("Right Turn Side Escape");		
 		turn_right();
 	} else if(g_sensor_readings.line_right) {
+		Serial.println("Left Turn Side Escape");
 		turn_left();
+	} else {
+		Serial.println("Updated Object Sensors");
+		update_object_sensors();
+		Serial.println("Search Attack");
+		search_attack();
 	}
+
+    //Debugging ONLY
+    //delay(5000);
 	// check for opponents
 	// TODO
 
@@ -198,7 +218,9 @@ void line_check() {
 void update_object_sensors() {
 	// Updates the global struct with readings from the object sensors. If sight of
 	// the enemy is lost, also updates the history of direction enemy was last seen in
-	// TODO
+
+	// Ultrasonics output HIGH pulse for the amount of time it takes the waves to reflect back
+	// pulseIn measures that, and distance in mm is then calculated
 	digitalWrite(LOBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(LOBJSENSOR_TRIG, HIGH);
@@ -209,15 +231,16 @@ void update_object_sensors() {
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(ROBJSENSOR_TRIG, HIGH);
-	delayMicroseconds(10)
+	delayMicroseconds(10);
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	int Rduration = pulseIn(ROBJSENSOR_ECHO, HIGH);
 	
 	float Ldistance = Lduration * 0.034/2;
 	float Rdistance = Rduration * 0.034/2;
 	
-	if(Ldistance > RING_SIZE && Rdistance > RING_SIZE) {
-		float left_right = Ldistance - Rdistance;
+	// Updates history of direction enemy was last seen in
+	if(min(Ldistance, Rdistance) > RING_SIZE && min(g_sensor_readings.object_left, g_sensor_readings.object_right) < RING_SIZE) {
+		float left_right = g_sensor_readings.object_left - g_sensor_readings.object_right;
 		if(left_right >= 0) {
 			g_sensor_readings.last_seen_right = true;
 		} else if(left_right < 0) {
@@ -226,6 +249,8 @@ void update_object_sensors() {
 	}
 	g_sensor_readings.object_left = Ldistance;
 	g_sensor_readings.object_right = Rdistance;
+	//serial.println(g_sensor_readings.object_left);
+	//serial.println(g_sensor_readings.object_right);
 	return;
 }
 
@@ -277,20 +302,20 @@ void search_attack() {
 	}
 	// If we haven't returned to the caller yet then the enemy is in range
 	float left_minus_right = g_sensor_readings.object_left - g_sensor_readings.object_right;
-	if(abs(left_minus_right) < 2){
+	if(abs(left_minus_right) < 10){
 		// If the enemy is pretty much in front of us, CHARGE!
 		g_motor_commands.motor_power = 255;
 		dir_forward();
 		return;
 	}
 	// If we haven't charged then we need to turn to face the enemy better
-	if(left_minus_right > 0){
+	if(left_minus_right > 10){
 		g_motor_commands.motor_power = 60;
-		turn_left();
+		turn_right();
 		return;
 	}else{
 		g_motor_commands.motor_power = 60;
-		turn_right();
+		turn_left();
 		return;
 	}
 }
@@ -299,42 +324,63 @@ void search_attack() {
 void update_motor() {
 	// logic to update output values to motor based on global variable values
 	// Sets directions for both motors. true value means forward, false value means reverse
+	int LMOTORPWR = 0;
+	int RMOTORPWR = 0;
+
 	if(g_motor_commands.turn == -1 && g_motor_commands.forward == true) {
 		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
+		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
+		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR * RMOTOR_TURN_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 1 && g_motor_commands.forward == true) {
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
+		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR * LMOTOR_TURN_CORRECTION_FACTOR;
+		RMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == true) {
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
+		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
+		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == false) {
 		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
+		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;// + MOTORMIN;
+		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR;// + MOTORMIN;
 	}
 	// ERROR CODE 1
 	else {
 		for (int j = 0; j < 10; j++) {
 			for (int i = 0; i < 5; i++) {
 				digitalWrite(LED_BUILTIN, LOW);
-				delay (50);
+				delay (500);
 				digitalWrite(LED_BUILTIN, HIGH);
-				delay(50);
+				delay(500);
 				digitalWrite(LED_BUILTIN, LOW);
 			}
-			delay(1000);
+			delay(2000);
 		}
 	}
-	digitalWrite(LMOTOR_PWM_PIN, g_motor_commands.motor_power);
-	digitalWrite(RMOTOR_PWM_PIN, g_motor_commands.motor_power);
+
+    if (max(LMOTORPWR, RMOTORPWR) < 255 - MOTORMIN) {
+        LMOTORPWR = LMOTORPWR + MOTORMIN;
+        RMOTORPWR = RMOTORPWR + MOTORMIN;
+    }
+
+    Serial.print("Left Motor Power: ");
+    Serial.println(LMOTORPWR);
+    Serial.print("Right Motor Power: ");
+    Serial.println(RMOTORPWR);
+	analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
+	analogWrite(RMOTOR_PWM_PIN, RMOTORPWR);
 	return;
 }
 

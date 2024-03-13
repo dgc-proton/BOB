@@ -1,6 +1,6 @@
 #define LMOTOR_PWM_PIN 13
-#define LMOTOR_DIR_PIN_1 12
-#define LMOTOR_DIR_PIN_2 14
+#define LMOTOR_DIR_PIN_1 14
+#define LMOTOR_DIR_PIN_2 12
 #define LMOTOR_CORRECTION_FACTOR 1
 
 #define RMOTOR_PWM_PIN 15
@@ -34,14 +34,14 @@ void direction_change() {
 }
 
 void turn_right() {
-	rmotor_dir = true;
-	lmotor_dir = false;
+	rmotor_dir = false;
+	lmotor_dir = true;
 	direction_change();
 }
 
 void turn_left() {
-	rmotor_dir = false;
-	lmotor_dir = true;
+	rmotor_dir = true;
+	lmotor_dir = false;
 	direction_change();
 }
 
