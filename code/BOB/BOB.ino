@@ -63,6 +63,7 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 // Built-in LED
 #define LED_BUILTIN 2
+
 /***********
 Header Files
 ************/
@@ -160,44 +161,33 @@ void setup() {
 }
 
 
-
 /********
 Main Code
 *********/
 
-void loop() { //Main Control loop
-	// put your main code here, to run repeatedly:
-	// Debug print statements added
-	// check for lines
-	line_check();
+void loop() { //Main Control loop	
+	line_check(); // check for lines
 
-	// move away if lines detected
+	 //Bound detection
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
+    //If both lines detected in the front, reverse
 		Serial.println("Rev Escape");		
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
+    //If one line detected in the left, turn right
 		Serial.println("Right Turn Side Escape");		
 		turn_right();
 	} else if(g_sensor_readings.line_right) {
+    //If one line detected on the right, turn left
 		Serial.println("Left Turn Side Escape");
 		turn_left();
 	} else {
+    //If no bounds detected, search for opponent
 		Serial.println("Updated Object Sensors");
 		update_object_sensors();
 		Serial.println("Search Attack");
 		search_attack();
 	}
-
-    //Debugging ONLY
-    //delay(5000);
-	// check for opponents
-	// TODO
-
-	// face opponent and then attack if within range & if no lines detected
-	// TODO
-
-	// search for opponent if not detected in range & if no lines detected
-	// TODO
 }
 
 
@@ -221,13 +211,16 @@ void update_object_sensors() {
 
 	// Ultrasonics output HIGH pulse for the amount of time it takes the waves to reflect back
 	// pulseIn measures that, and distance in mm is then calculated
-	digitalWrite(LOBJSENSOR_TRIG, LOW);
+	
+  //Left utrasonic sensor
+  digitalWrite(LOBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(LOBJSENSOR_TRIG, HIGH);
 	delayMicroseconds(10);
 	digitalWrite(LOBJSENSOR_TRIG, LOW);
 	int Lduration = pulseIn(LOBJSENSOR_ECHO, HIGH);
 	
+  //Right ultrasonic sensor
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(ROBJSENSOR_TRIG, HIGH);
@@ -249,8 +242,7 @@ void update_object_sensors() {
 	}
 	g_sensor_readings.object_left = Ldistance;
 	g_sensor_readings.object_right = Rdistance;
-	//serial.println(g_sensor_readings.object_left);
-	//serial.println(g_sensor_readings.object_right);
+
 	return;
 }
 
@@ -264,20 +256,7 @@ void reverse_escape() {
 		delay(100);
 		line_check();
 	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
-	// does right side turn, slow speed to reduce slip, completes line check, iteration only takes place if either line is no longer seen. if both lines are seen, recurses reverse_escape().
-	// How does it know its facing forwards, or should it go to opponent check as soon as line isnt seen?
-	// do {
-		g_motor_commands.motor_power = 50;
-		turn_right();
-		line_check();
-		if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
-			reverse_escape();
-		}
-	// } while((g_sensor_readings.line_left && !g_sensor_readings.line_right) || (!g_sensor_readings.line_left && g_sensor_readings.line_right));
-	// wip if needed here or in do while loop
-	// if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
-	//		reverse_escape();
-	// }
+
 	return;
 }
 
