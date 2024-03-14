@@ -1,8 +1,7 @@
 /*
 **************************************
-**  B.O.B. (simple behaviour mode)  **
+**  B.O.B. - Barely Operational Bot  **
 **************************************
-* Barely Operable Bot
 *
 * Authors:
 * Dave Riley
@@ -21,38 +20,44 @@
 * 1: . . . . . : Issue with update_motor, g_motor_commands has conflicting/erroneous values. Either turn is not within [-1, 1] or direction says reverse, but turn is not set to straight (0) {while this is possible to implement, it is rather confusing}. Hopefully code logic should never bring such a situation.
 */
 
-
 /**********
 Definitions
 ***********/
+
 // left motor
 #define LMOTOR_PWM_PIN   13
 #define LMOTOR_DIR_PIN_1 12 
 #define LMOTOR_DIR_PIN_2 14
 const float LMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
 const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
+
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
 #endif
+
 // right motor
 #define RMOTOR_PWM_PIN   15
 #define RMOTOR_DIR_PIN_1 2 
 #define RMOTOR_DIR_PIN_2 4
 const float RMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
 const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
+
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
 #endif
+
 // both motors
 #define MOTORMIN 60  // to account for deadband of motors, set based on motor with largest deadband
 #define TURNING_FACTOR_FAST 50  // amount of PWM to decrease the turning wheel by when driving quickly
+
 // IR line sensors
 #define LINE_LEFT_PIN 27
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
 #define LINE_REFLECTION_MULTIPLIER 2  // defines how high the threshold is between detecting ring surface and outside line, ignoring ambient light
-// object sensors
+
+//Object sensors
 #define RING_SIZE 770
 
 #define LOBJSENSOR_TRIG 16
@@ -64,18 +69,13 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 // Built-in LED
 #define LED_BUILTIN 2
 
-/***********
-Header Files
-************/
-
-
-
 /***************
 Global Variables
 ****************/
 // calibrated values above which the sensors have detected lines
 int g_line_left_threshold, g_line_right_threshold;
-// to store readings from the ultrasonic sensors
+
+//Stores readings from the ultrasonic and infrared sensors
 struct Sensors {
 	float object_left = 4000.0;
 	float object_right = 4000.0;
@@ -83,6 +83,7 @@ struct Sensors {
 	bool line_left = false;
 	bool line_right = false;
 } g_sensor_readings;  // the structure name
+
 // stores commands for motor power and steering
 struct MotorCommands {
 	int turn; // -1 for left; 1 for right; 0 for straight.
@@ -108,15 +109,15 @@ bool calibrate_line_sensors(void);
 Setup Code
 **********/
 void setup() {
-    Serial.begin(115200);
-	// put your setup code here, to run once:
+  Serial.begin(115200); //Starts serial output
+
 	bool success;
 
-	// set inbuilt LED pin (D13) as output & switch on to show that setup in progress
+	//Set built-in LED pin (D13) as output & switch on to show that setup in progress
 	pinMode(LED_BUILTIN, OUTPUT);
 	digitalWrite(LED_BUILTIN, HIGH);
 
-	// set motor pin modes
+	//Set motors pin modes
 	pinMode(LMOTOR_DIR_PIN_1, OUTPUT);
 	pinMode(LMOTOR_DIR_PIN_2, OUTPUT);
 	pinMode(LMOTOR_PWM_PIN, OUTPUT); 
@@ -124,25 +125,25 @@ void setup() {
 	pinMode(RMOTOR_DIR_PIN_2, OUTPUT);
 	pinMode(RMOTOR_PWM_PIN, OUTPUT);
 	
-	// set object sensor pin modes
+	//Set ultrasonic sensor pin modes
 	pinMode(LOBJSENSOR_TRIG, OUTPUT);
 	pinMode(LOBJSENSOR_ECHO, INPUT);
 	pinMode(ROBJSENSOR_TRIG, OUTPUT);
 	pinMode(ROBJSENSOR_ECHO, INPUT);
 
-	// set sensor pin modes
+	//Set line sensors pin mode
 	pinMode(LINE_LEFT_POWER_PIN, OUTPUT);
 	pinMode(LINE_RIGHT_POWER_PIN, OUTPUT);
 	pinMode(LINE_LEFT_PIN, INPUT);
 	pinMode(LINE_RIGHT_PIN, INPUT);
 
-	// set motors in forward direction
+	//Set motors in forward direction
 	dir_forward();
 
 	while(true) {
-		// calibrate the line sensors for the current ambient lighting, then switch them on
+		//Calibrates the line sensors for the current ambient lighting, then switch them on
 		success = calibrate_line_sensors();
-		// if the sensors calibrated then switch them on, otherwise repeat the calibration
+		//If the sensors calibrated successfully, then switch them on, otherwise repeat the calibration
 		if(success == true) {
 			digitalWrite(LINE_LEFT_POWER_PIN, HIGH);
 			digitalWrite(LINE_RIGHT_POWER_PIN, HIGH);
@@ -150,7 +151,7 @@ void setup() {
 		}
 	}
 
-	// blink LED to show setup completed sucessfully
+	//Blinks LED to show setup completed sucessfully
 	for(int i=0; i<3; i++) {
 		digitalWrite(LED_BUILTIN, LOW);
 		delay(500);
@@ -166,7 +167,7 @@ Main Code
 *********/
 
 void loop() { //Main Control loop	
-	line_check(); // check for lines
+	line_check(); //Checks for lines
 
 	 //Bound detection
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
@@ -191,8 +192,7 @@ void loop() { //Main Control loop
 }
 
 
-void line_check() {
-	// check for lines
+void line_check() { //Checks for lines
 	if(analogRead(LINE_LEFT_PIN) >= g_line_left_threshold) {
 		g_sensor_readings.line_left = true;
 	} else {
@@ -261,12 +261,8 @@ void reverse_escape() {
 }
 
 
-void search_attack() {
-	// searches for the opponent, if opponent found to be in range will accelerate full speed at them
-	if(g_sensor_readings.line_left || g_sensor_readings.line_right){
-		// If lines are detected, return to the calling function
-		return;
-	}
+void search_attack() {// Searches for the opponent, if opponent found to be in range will accelerate full speed at them
+
 	if(min(g_sensor_readings.object_left, g_sensor_readings.object_right) > RING_SIZE){
 		// the enemy is not in range, turn in the direction they were last seen
 		if(g_sensor_readings.last_seen_right){
@@ -279,6 +275,7 @@ void search_attack() {
 			return;
 		}
 	}
+
 	// If we haven't returned to the caller yet then the enemy is in range
 	float left_minus_right = g_sensor_readings.object_left - g_sensor_readings.object_right;
 	if(abs(left_minus_right) < 10){
@@ -287,12 +284,13 @@ void search_attack() {
 		dir_forward();
 		return;
 	}
+
 	// If we haven't charged then we need to turn to face the enemy better
 	if(left_minus_right > 10){
 		g_motor_commands.motor_power = 60;
 		turn_right();
 		return;
-	}else{
+	} else {
 		g_motor_commands.motor_power = 60;
 		turn_left();
 		return;
@@ -349,18 +347,20 @@ void update_motor() {
 		}
 	}
 
-    if (max(LMOTORPWR, RMOTORPWR) < 255 - MOTORMIN) {
-        LMOTORPWR = LMOTORPWR + MOTORMIN;
-        RMOTORPWR = RMOTORPWR + MOTORMIN;
-    }
+  if (max(LMOTORPWR, RMOTORPWR) < 255 - MOTORMIN) {
+      LMOTORPWR = LMOTORPWR + MOTORMIN;
+      RMOTORPWR = RMOTORPWR + MOTORMIN;
+  }
 
-    Serial.print("Left Motor Power: ");
-    Serial.println(LMOTORPWR);
-    Serial.print("Right Motor Power: ");
-    Serial.println(RMOTORPWR);
-	analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
+  Serial.print("Left Motor Power: ");
+  Serial.println(LMOTORPWR);
+  Serial.print("Right Motor Power: ");
+  Serial.println(RMOTORPWR);
+	
+  analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
 	analogWrite(RMOTOR_PWM_PIN, RMOTORPWR);
-	return;
+	
+  return;
 }
 
 void turn_left() {
@@ -415,7 +415,7 @@ bool calibrate_line_sensors() {
 		delayMicroseconds(50);
 	}
 
-	// calculate thresholds
+	//Calculate thresholds
 	ambient_light_left = off_value_left / total_readings;
 	ambient_light_right = off_value_right / total_readings;
 	ring_surface_left = on_value_left / total_readings;
@@ -423,6 +423,5 @@ bool calibrate_line_sensors() {
 	g_line_left_threshold = ceil((LINE_REFLECTION_MULTIPLIER * (ring_surface_left - ambient_light_left)) + ambient_light_left);
 	g_line_right_threshold = ceil((LINE_REFLECTION_MULTIPLIER * (ring_surface_right - ambient_light_right)) + ambient_light_right);
 
-	// return true if sucessful
-	return (g_line_left_threshold > 1) && (g_line_right_threshold > 1);
+	return (g_line_left_threshold > 1) && (g_line_right_threshold > 1); 	// return true if sucessful
 }
