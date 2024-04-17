@@ -1,0 +1,34 @@
+FIXES REQUIRED
+Common Pins:
+GND H-Bridge: Ultrasonic Grounds, Line Sensor Grounds, Arduino Ground
+5V H-Bridge: Ultrasonic Power, ESP32 VIN
+
+Fixes:
+Pin Soldering on Ultrasonics, Add ESP32 VIN to crimped connection
+
+
+
+Battery Pins:
+1. Power --> +12
+2. Ground --> GND
+
+H-Bridge
+ENA --> 13
+In1 --> 12
+In2 --> 14
+
+ENB --> 15
+In3 --> 2
+In4 --> 4
+
+Line Sensors
+Left Power --> 26
+Left Out --> 27
+Right Power --> 33
+Right Out --> 25
+
+Obj Sensors
+Left Trigger --> 16
+Left Echo --> 17
+Right Trigger --> 5
+Right Echo --> 18
