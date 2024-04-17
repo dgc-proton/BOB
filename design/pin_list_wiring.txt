@@ -1,12 +1,20 @@
+Colour coding:
+The bundle of four cables go diagonally across, so the ones sticking out the right are for the sensors on the left and vice-versa.
+Red: 5V (apart from single wire from battery to H-Bridge which is 12V)
+Black: ground (-ve battery terminal)
+Yellow (bundle of four cables): object sensors echo
+Blue, bundle of 4: object sensors trigger
+Green, bundle of 4: line sensors Vcc
+White, bundle of 4: line sensors out
+Bundle of 6, one of each colour: these are from the H-Bridge to the MCU so are fully visible
+
+===================================================================================
 FIXES REQUIRED
 Common Pins:
 GND H-Bridge: Ultrasonic Grounds, Line Sensor Grounds, Arduino Ground
 5V H-Bridge: Ultrasonic Power, ESP32 VIN
-
 Fixes:
 Pin Soldering on Ultrasonics, Add ESP32 VIN to crimped connection
-
-
 
 Battery Pins:
 1. Power --> +12
