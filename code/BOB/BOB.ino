@@ -26,8 +26,8 @@ Definitions
 
 // left motor
 #define LMOTOR_PWM_PIN   13
-#define LMOTOR_DIR_PIN_1 12 
-#define LMOTOR_DIR_PIN_2 14
+#define LMOTOR_DIR_PIN_2 12  // swapped the pin definitions around because motors were running in reverese
+#define LMOTOR_DIR_PIN_1 14
 const float LMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
 const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
@@ -37,8 +37,8 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 // right motor
 #define RMOTOR_PWM_PIN   15
-#define RMOTOR_DIR_PIN_1 2 
-#define RMOTOR_DIR_PIN_2 4
+#define RMOTOR_DIR_PIN_2 2  // swapped the pin definitions around because motors were running in reverese
+#define RMOTOR_DIR_PIN_1 4
 const float RMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
 const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
@@ -55,7 +55,8 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_REFLECTION_MULTIPLIER 2  // defines how high the threshold is between detecting ring surface and outside line, ignoring ambient light
+#define LINE_LEFT_THRESHOLD 150  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 150  // based on manual callibration
 
 //Object sensors
 #define RING_SIZE 770
@@ -72,8 +73,6 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 /***************
 Global Variables
 ****************/
-// calibrated values above which the sensors have detected lines
-int g_line_left_threshold, g_line_right_threshold;
 
 //Stores readings from the ultrasonic and infrared sensors
 struct Sensors {
@@ -103,15 +102,12 @@ void turn_left(void);
 void turn_right(void);
 void dir_forward(void);
 void dir_reverse(void);
-bool calibrate_line_sensors(void);
 
 /*********
 Setup Code
 **********/
 void setup() {
   Serial.begin(115200); //Starts serial output
-
-	bool success;
 
 	//Set built-in LED pin (D13) as output & switch on to show that setup in progress
 	pinMode(LED_BUILTIN, OUTPUT);
@@ -137,19 +133,12 @@ void setup() {
 	pinMode(LINE_LEFT_PIN, INPUT);
 	pinMode(LINE_RIGHT_PIN, INPUT);
 
+	//Power on to the line sensors
+	digitalWrite(LINE_LEFT_POWER_PIN, HIGH);
+	digitalWrite(LINE_RIGHT_POWER_PIN, HIGH);
+
 	//Set motors in forward direction
 	dir_forward();
-
-	while(true) {
-		//Calibrates the line sensors for the current ambient lighting, then switch them on
-		success = calibrate_line_sensors();
-		//If the sensors calibrated successfully, then switch them on, otherwise repeat the calibration
-		if(success == true) {
-			digitalWrite(LINE_LEFT_POWER_PIN, HIGH);
-			digitalWrite(LINE_RIGHT_POWER_PIN, HIGH);
-			break;
-		}
-	}
 
 	//Blinks LED to show setup completed sucessfully
 	for(int i=0; i<3; i++) {
@@ -176,29 +165,68 @@ void loop() { //Main Control loop
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
     //If one line detected in the left, turn right
-		Serial.println("Right Turn Side Escape");		
 		turn_right();
 	} else if(g_sensor_readings.line_right) {
     //If one line detected on the right, turn left
-		Serial.println("Left Turn Side Escape");
 		turn_left();
 	} else {
     //If no bounds detected, search for opponent
-		Serial.println("Updated Object Sensors");
 		update_object_sensors();
-		Serial.println("Search Attack");
 		search_attack();
 	}
+
+
+  // debugging
+  /*
+  Serial.print("object left: ");
+  Serial.println(g_sensor_readings.object_left);
+  Serial.print("object right: ");
+  Serial.println(g_sensor_readings.object_right);
+  Serial.print("last seen right?: ");
+  Serial.println(g_sensor_readings.last_seen_right);
+  Serial.print("line left: ");
+  Serial.println(g_sensor_readings.line_left);
+  Serial.print("line right: ");
+  Serial.println(g_sensor_readings.line_right);
+  Serial.print("turn (-1 left, 0 straight, 1 right): ");
+  Serial.println(g_motor_commands.turn);
+  Serial.print("forward? ");
+  Serial.println(g_motor_commands.forward);
+  Serial.print("motor power: ");
+  Serial.println(g_motor_commands.motor_power);
+  Serial.println();
+  delay(15000);
+  */
 }
 
 
-void line_check() { //Checks for lines
-	if(analogRead(LINE_LEFT_PIN) >= g_line_left_threshold) {
+void line_check() { 
+	//Update values for lines sensed from the QRE1113 **DIGITAL** breakout board sensors 
+  //Lower numbers mean more refleacive, more than 3000 means nothing was reflected
+  //(testing on black tape and white masking tape suggest anything below 150 is a white line)
+  pinMode(LINE_LEFT_PIN, OUTPUT);
+  digitalWrite(LINE_LEFT_PIN, HIGH);  
+  delayMicroseconds(10);
+  pinMode(LINE_LEFT_PIN, INPUT);
+  long time = micros();
+  //time how long the input is HIGH, but quit after 3ms as nothing happens after that
+  while (digitalRead(LINE_LEFT_PIN) == HIGH && micros() - time < 3000);
+  int diff = micros() - time;
+	if(diff < LINE_LEFT_THRESHOLD){
 		g_sensor_readings.line_left = true;
 	} else {
 		g_sensor_readings.line_left = false;
 	}
-	if(analogRead(LINE_RIGHT_PIN) >= g_line_right_threshold) {
+
+  pinMode(LINE_RIGHT_PIN, OUTPUT);
+  digitalWrite(LINE_RIGHT_PIN, HIGH);  
+  delayMicroseconds(10);
+  pinMode(LINE_RIGHT_PIN, INPUT);
+  time = micros();
+  //time how long the input is HIGH, but quit after 3ms as nothing happens after that
+  while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
+  diff = micros() - time;
+	if(diff < LINE_RIGHT_THRESHOLD){
 		g_sensor_readings.line_right = true;
 	} else {
 		g_sensor_readings.line_right = false;
@@ -351,11 +379,6 @@ void update_motor() {
       LMOTORPWR = LMOTORPWR + MOTORMIN;
       RMOTORPWR = RMOTORPWR + MOTORMIN;
   }
-
-  Serial.print("Left Motor Power: ");
-  Serial.println(LMOTORPWR);
-  Serial.print("Right Motor Power: ");
-  Serial.println(RMOTORPWR);
 	
   analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
 	analogWrite(RMOTOR_PWM_PIN, RMOTORPWR);
@@ -385,43 +408,4 @@ void dir_reverse() {
 	g_motor_commands.turn = 0;
 	g_motor_commands.forward = false;
 	update_motor();
-}
-
-
-bool calibrate_line_sensors() {
-	int on_value_left = 0, on_value_right = 0, off_value_left = 0, off_value_right = 0, total_readings = 5;
-	int ambient_light_left, ambient_light_right, ring_surface_left, ring_surface_right;
-	
-	// take light off readings
-	digitalWrite(LINE_LEFT_POWER_PIN, LOW);
-	digitalWrite(LINE_RIGHT_POWER_PIN, LOW);
-	delayMicroseconds(500);
-	for(int i=0; i<total_readings; i++){
-		// take a reading from the left sensor, light off
-		off_value_left += analogRead(LINE_LEFT_PIN);
-		// take a reading from the right sensor, light off
-		off_value_right += analogRead(LINE_RIGHT_PIN);
-		delayMicroseconds(50);
-	}
-	// take light on readings
-	digitalWrite(LINE_LEFT_POWER_PIN, HIGH);
-	digitalWrite(LINE_RIGHT_POWER_PIN, HIGH);
-	delayMicroseconds(500);
-	for(int i=0; i<total_readings; i++){
-		// take a reading from the left sensor, light off
-		on_value_left += analogRead(LINE_LEFT_PIN);
-		// take a reading from the right sensor, light off
-		on_value_right += analogRead(LINE_RIGHT_PIN);
-		delayMicroseconds(50);
-	}
-
-	//Calculate thresholds
-	ambient_light_left = off_value_left / total_readings;
-	ambient_light_right = off_value_right / total_readings;
-	ring_surface_left = on_value_left / total_readings;
-	ring_surface_right = on_value_right / total_readings;
-	g_line_left_threshold = ceil((LINE_REFLECTION_MULTIPLIER * (ring_surface_left - ambient_light_left)) + ambient_light_left);
-	g_line_right_threshold = ceil((LINE_REFLECTION_MULTIPLIER * (ring_surface_right - ambient_light_right)) + ambient_light_right);
-
-	return (g_line_left_threshold > 1) && (g_line_right_threshold > 1); 	// return true if sucessful
 }
