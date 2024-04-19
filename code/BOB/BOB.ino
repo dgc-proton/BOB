@@ -28,7 +28,7 @@ Definitions
 #define LMOTOR_PWM_PIN   13
 #define LMOTOR_DIR_PIN_2 12  // swapped the pin definitions around because motors were running in reverese
 #define LMOTOR_DIR_PIN_1 14
-const float LMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
+const float LMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
 const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
@@ -39,7 +39,7 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define RMOTOR_PWM_PIN   15
 #define RMOTOR_DIR_PIN_2 2  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
-const float RMOTOR_CORRECTION_FACTOR = 0.5; // must be <=1
+const float RMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
 const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if RMOTOR_CORRECTION_FACTOR > 1
@@ -160,8 +160,7 @@ void loop() { //Main Control loop
 
 	 //Bound detection
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
-    //If both lines detected in the front, reverse
-		Serial.println("Rev Escape");		
+    //If both lines detected in the front, reverse	
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
     //If one line detected in the left, turn right
@@ -195,7 +194,7 @@ void loop() { //Main Control loop
   Serial.print("motor power: ");
   Serial.println(g_motor_commands.motor_power);
   Serial.println();
-  delay(15000);
+  delay(1000);
   */
 }
 
