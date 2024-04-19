@@ -2,7 +2,7 @@ Colour coding:
 The bundle of four cables go diagonally across, so the ones sticking out the right are for the sensors on the left and vice-versa.
 Red: 5V (apart from single wire from battery to H-Bridge which is 12V)
 Black: ground (-ve battery terminal)
-Yellow (bundle of four cables): object sensors echo
+Yellow, bundle of 4: object sensors echo
 Blue, bundle of 4: object sensors trigger
 Green, bundle of 4: line sensors Vcc
 White, bundle of 4: line sensors out
