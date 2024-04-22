@@ -26,9 +26,9 @@ Definitions
 
 // left motor
 #define LMOTOR_PWM_PIN   13
-#define LMOTOR_DIR_PIN_2 12  // swapped the pin definitions around because motors were running in reverese
-#define LMOTOR_DIR_PIN_1 14
-const float LMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
+#define LMOTOR_DIR_PIN_1 12  // swapped the pin definitions around because motors were running in reverese
+#define LMOTOR_DIR_PIN_2 14
+const float LMOTOR_CORRECTION_FACTOR = 0.2; // must be <=1
 const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
@@ -39,7 +39,7 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define RMOTOR_PWM_PIN   15
 #define RMOTOR_DIR_PIN_2 2  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
-const float RMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
+const float RMOTOR_CORRECTION_FACTOR = 0.2; // must be <=1
 const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if RMOTOR_CORRECTION_FACTOR > 1
@@ -55,8 +55,8 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 150  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 150  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 80  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 100  // based on manual callibration
 
 //Object sensors
 #define RING_SIZE 770
@@ -157,27 +157,30 @@ Main Code
 
 void loop() { //Main Control loop	
 	line_check(); //Checks for lines
-
+    //update_object_sensors(); //debugging
 	 //Bound detection
 	if(g_sensor_readings.line_left && g_sensor_readings.line_right) {
     //If both lines detected in the front, reverse	
+        //Serial.println("Reverse Escape");
 		reverse_escape();
 	} else if(g_sensor_readings.line_left) {
     //If one line detected in the left, turn right
+        //Serial.println("Turning Right");
 		turn_right();
 	} else if(g_sensor_readings.line_right) {
     //If one line detected on the right, turn left
+        //Serial.println("Turning Left");
 		turn_left();
 	} else {
     //If no bounds detected, search for opponent
 		update_object_sensors();
+        //Serial.println("Search Attack");
 		search_attack();
 	}
 
-
   // debugging
-  /*
-  Serial.print("object left: ");
+  
+  /*Serial.print("object left: ");
   Serial.println(g_sensor_readings.object_left);
   Serial.print("object right: ");
   Serial.println(g_sensor_readings.object_right);
@@ -194,13 +197,13 @@ void loop() { //Main Control loop
   Serial.print("motor power: ");
   Serial.println(g_motor_commands.motor_power);
   Serial.println();
-  delay(1000);
-  */
+  delay(5000);*/
+  
 }
 
 
 void line_check() { 
-	//Update values for lines sensed from the QRE1113 **DIGITAL** breakout board sensors 
+    //Update values for lines sensed from the QRE1113 **DIGITAL** breakout board sensors 
   //Lower numbers mean more refleacive, more than 3000 means nothing was reflected
   //(testing on black tape and white masking tape suggest anything below 150 is a white line)
   pinMode(LINE_LEFT_PIN, OUTPUT);
@@ -211,6 +214,8 @@ void line_check() {
   //time how long the input is HIGH, but quit after 3ms as nothing happens after that
   while (digitalRead(LINE_LEFT_PIN) == HIGH && micros() - time < 3000);
   int diff = micros() - time;
+  //Serial.print("Left:");
+  Serial.println(diff);
 	if(diff < LINE_LEFT_THRESHOLD){
 		g_sensor_readings.line_left = true;
 	} else {
@@ -225,6 +230,8 @@ void line_check() {
   //time how long the input is HIGH, but quit after 3ms as nothing happens after that
   while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
   diff = micros() - time;
+  //Serial.print("Right:");
+  Serial.println(diff);
 	if(diff < LINE_RIGHT_THRESHOLD){
 		g_sensor_readings.line_right = true;
 	} else {
@@ -240,14 +247,14 @@ void update_object_sensors() {
 	// pulseIn measures that, and distance in mm is then calculated
 	
   //Left utrasonic sensor
-  digitalWrite(LOBJSENSOR_TRIG, LOW);
+    digitalWrite(LOBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(LOBJSENSOR_TRIG, HIGH);
 	delayMicroseconds(10);
 	digitalWrite(LOBJSENSOR_TRIG, LOW);
 	int Lduration = pulseIn(LOBJSENSOR_ECHO, HIGH);
 	
-  //Right ultrasonic sensor
+    //Right ultrasonic sensor
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(ROBJSENSOR_TRIG, HIGH);
@@ -255,8 +262,8 @@ void update_object_sensors() {
 	digitalWrite(ROBJSENSOR_TRIG, LOW);
 	int Rduration = pulseIn(ROBJSENSOR_ECHO, HIGH);
 	
-	float Ldistance = Lduration * 0.034/2;
-	float Rdistance = Rduration * 0.034/2;
+	float Ldistance = Lduration * 0.34/2;
+	float Rdistance = Rduration * 0.34/2;
 	
 	// Updates history of direction enemy was last seen in
 	if(min(Ldistance, Rdistance) > RING_SIZE && min(g_sensor_readings.object_left, g_sensor_readings.object_right) < RING_SIZE) {
@@ -295,17 +302,27 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 		if(g_sensor_readings.last_seen_right){
 			g_motor_commands.motor_power = 60;
 			turn_right();
+            //delay(1000);
+            g_motor_commands.motor_power = 0;
+            dir_forward();
+            //Serial.println("Stopped");
+            //delay(1000);
 			return;
 		}else{
 			g_motor_commands.motor_power = 60;
 			turn_left();
+            //delay(1000);
+            g_motor_commands.motor_power = 0;
+            dir_forward();
+            //Serial.println("Stopped");
+            //delay(1000);
 			return;
 		}
 	}
 
 	// If we haven't returned to the caller yet then the enemy is in range
 	float left_minus_right = g_sensor_readings.object_left - g_sensor_readings.object_right;
-	if(abs(left_minus_right) < 10){
+	if(abs(left_minus_right) < 100){
 		// If the enemy is pretty much in front of us, CHARGE!
 		g_motor_commands.motor_power = 255;
 		dir_forward();
@@ -313,7 +330,7 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 	}
 
 	// If we haven't charged then we need to turn to face the enemy better
-	if(left_minus_right > 10){
+	if(left_minus_right > 100){
 		g_motor_commands.motor_power = 60;
 		turn_right();
 		return;
