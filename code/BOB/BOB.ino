@@ -28,7 +28,7 @@ Definitions
 #define LMOTOR_PWM_PIN   13
 #define LMOTOR_DIR_PIN_1 12  // swapped the pin definitions around because motors were running in reverese
 #define LMOTOR_DIR_PIN_2 14
-const float LMOTOR_CORRECTION_FACTOR = 0.2; // must be <=1
+const float LMOTOR_CORRECTION_FACTOR = 0.4; // must be <=1
 const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
@@ -37,7 +37,7 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 // right motor
 #define RMOTOR_PWM_PIN   15
-#define RMOTOR_DIR_PIN_2 2  // swapped the pin definitions around because motors were running in reverese
+#define RMOTOR_DIR_PIN_2 32  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
 const float RMOTOR_CORRECTION_FACTOR = 0.2; // must be <=1
 const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
@@ -55,8 +55,8 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 80  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 100  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 250  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 250  // based on manual callibration
 
 //Object sensors
 #define RING_SIZE 770
@@ -85,9 +85,9 @@ struct Sensors {
 
 // stores commands for motor power and steering
 struct MotorCommands {
-	int turn; // -1 for left; 1 for right; 0 for straight.
-	bool forward; // true for forward, false for reverse. Can only be in reverse if turn is set to 0, or straight! Not allowing a reverse turning possibility, since doing an on the spot turn anyways.
-	int motor_power;  // negative for reverse
+	int turn = 0; // -1 for left; 1 for right; 0 for straight.
+	bool forward = true; // true for forward, false for reverse. Can only be in reverse if turn is set to 0, or straight! Not allowing a reverse turning possibility, since doing an on the spot turn anyways.
+	int motor_power;
 } g_motor_commands;  // the structure name
 
 /******************
@@ -107,8 +107,9 @@ void dir_reverse(void);
 Setup Code
 **********/
 void setup() {
-  Serial.begin(115200); //Starts serial output
-
+    Serial.begin(115200); //Starts serial output
+    analogWrite(LMOTOR_PWM_PIN, 0);
+    analogWrite(RMOTOR_PWM_PIN, 0);
 	//Set built-in LED pin (D13) as output & switch on to show that setup in progress
 	pinMode(LED_BUILTIN, OUTPUT);
 	digitalWrite(LED_BUILTIN, HIGH);
@@ -140,6 +141,10 @@ void setup() {
 	//Set motors in forward direction
 	dir_forward();
 
+    for (int i=0; i<5; i++) {
+        update_object_sensors();
+    }
+
 	//Blinks LED to show setup completed sucessfully
 	for(int i=0; i<3; i++) {
 		digitalWrite(LED_BUILTIN, LOW);
@@ -166,10 +171,12 @@ void loop() { //Main Control loop
 	} else if(g_sensor_readings.line_left) {
     //If one line detected in the left, turn right
         //Serial.println("Turning Right");
+        g_motor_commands.motor_power = 60;
 		turn_right();
 	} else if(g_sensor_readings.line_right) {
     //If one line detected on the right, turn left
         //Serial.println("Turning Left");
+        g_motor_commands.motor_power = 60;
 		turn_left();
 	} else {
     //If no bounds detected, search for opponent
@@ -246,7 +253,7 @@ void update_object_sensors() {
 	// Ultrasonics output HIGH pulse for the amount of time it takes the waves to reflect back
 	// pulseIn measures that, and distance in mm is then calculated
 	
-  //Left utrasonic sensor
+	//Left utrasonic sensor
     digitalWrite(LOBJSENSOR_TRIG, LOW);
 	delayMicroseconds(2);
 	digitalWrite(LOBJSENSOR_TRIG, HIGH);
@@ -286,11 +293,20 @@ void reverse_escape() {
 	do {
 		g_motor_commands.motor_power = 255;
 		dir_reverse();
-		// revers set to high speed so can counter forward momentum if needed. wip
+		// revers set to high speed so can counter forward momentum if needed.
 		delay(100);
 		line_check();
 	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
-
+	if(g_motor_commands.last_seen_right == true) {
+		g_motor_commands.motor_power = 60;
+		turn_right();
+	} else {
+		g_motor_commands.motor_power = 60;
+		turn_left();
+	}
+	delay(25);
+	g_motor_commands.motor_power = 0;
+	dir_forward();
 	return;
 }
 
@@ -302,7 +318,7 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 		if(g_sensor_readings.last_seen_right){
 			g_motor_commands.motor_power = 60;
 			turn_right();
-            //delay(1000);
+            delay(100);
             g_motor_commands.motor_power = 0;
             dir_forward();
             //Serial.println("Stopped");
@@ -311,7 +327,7 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 		}else{
 			g_motor_commands.motor_power = 60;
 			turn_left();
-            //delay(1000);
+            delay(100);
             g_motor_commands.motor_power = 0;
             dir_forward();
             //Serial.println("Stopped");
@@ -390,16 +406,16 @@ void update_motor() {
 			delay(2000);
 		}
 	}
-
-  if (max(LMOTORPWR, RMOTORPWR) < 255 - MOTORMIN) {
-      LMOTORPWR = LMOTORPWR + MOTORMIN;
-      RMOTORPWR = RMOTORPWR + MOTORMIN;
-  }
+    
+    if (LMOTORPWR != 0 && RMOTORPWR !=0 && max(LMOTORPWR, RMOTORPWR) < 255 - MOTORMIN) {
+        LMOTORPWR = LMOTORPWR + MOTORMIN;
+        RMOTORPWR = RMOTORPWR + MOTORMIN;
+    }
 	
-  analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
-	analogWrite(RMOTOR_PWM_PIN, RMOTORPWR);
+    analogWrite(LMOTOR_PWM_PIN, LMOTORPWR);
+    analogWrite(RMOTOR_PWM_PIN, RMOTORPWR);
 	
-  return;
+    return;
 }
 
 void turn_left() {
