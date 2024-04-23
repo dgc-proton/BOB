@@ -29,7 +29,6 @@ Definitions
 #define LMOTOR_DIR_PIN_2 12  // swapped the pin definitions around because motors were running in reverese
 #define LMOTOR_DIR_PIN_1 14
 const float LMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
-const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -37,10 +36,9 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 // right motor
 #define RMOTOR_PWM_PIN   15
-#define RMOTOR_DIR_PIN_2 2  // swapped the pin definitions around because motors were running in reverese
+#define RMOTOR_DIR_PIN_2 32  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
 const float RMOTOR_CORRECTION_FACTOR = 0.35; // must be <=1
-const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
