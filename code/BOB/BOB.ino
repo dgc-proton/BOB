@@ -28,8 +28,8 @@ Definitions
 #define LMOTOR_PWM_PIN   13
 #define LMOTOR_DIR_PIN_1 12  // swapped the pin definitions around because motors were running in reverese
 #define LMOTOR_DIR_PIN_2 14
-const float LMOTOR_CORRECTION_FACTOR = 0.4; // must be <=1
-const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
+const float LMOTOR_CORRECTION_FACTOR = 1; // must be <=1
+const float LMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -39,8 +39,8 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define RMOTOR_PWM_PIN   15
 #define RMOTOR_DIR_PIN_2 32  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
-const float RMOTOR_CORRECTION_FACTOR = 0.2; // must be <=1
-const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
+const float RMOTOR_CORRECTION_FACTOR = 1; // must be <=1
+const float RMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
 
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -55,11 +55,11 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 250  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 250  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 2500  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 2500  // based on manual callibration
 
 //Object sensors
-#define RING_SIZE 770
+#define RING_SIZE 600
 
 #define LOBJSENSOR_TRIG 16
 #define LOBJSENSOR_ECHO 17
@@ -69,6 +69,9 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 1; // motors slower in reverse
 
 // Built-in LED
 #define LED_BUILTIN 2
+
+// START BUTTON
+#define START_BUTTON 19
 
 /***************
 Global Variables
@@ -95,6 +98,7 @@ Function Prototypes
 *******************/
 void line_check(void);
 void reverse_escape(void);
+void single_side_escape(void);
 void search_attack(void);
 void update_object_sensors(void);
 void update_motor(void);
@@ -134,6 +138,9 @@ void setup() {
 	pinMode(LINE_LEFT_PIN, INPUT);
 	pinMode(LINE_RIGHT_PIN, INPUT);
 
+    // Start Button
+    pinMode(START_BUTTON, INPUT_PULLUP);
+
 	//Power on to the line sensors
 	digitalWrite(LINE_LEFT_POWER_PIN, HIGH);
 	digitalWrite(LINE_RIGHT_POWER_PIN, HIGH);
@@ -153,6 +160,19 @@ void setup() {
 		delay(500);
 		digitalWrite(LED_BUILTIN, LOW);
 	}
+
+    while(true) {
+        bool start_check = digitalRead(START_BUTTON);
+        if (start_check == false) {
+            break;
+        }
+    }
+
+    g_motor_commands.motor_power = 80;
+    update_motor();
+    delay(400);
+    g_motor_commands.motor_power = 0;
+    update_motor();
 }
 
 
@@ -171,13 +191,11 @@ void loop() { //Main Control loop
 	} else if(g_sensor_readings.line_left) {
     //If one line detected in the left, turn right
         //Serial.println("Turning Right");
-        g_motor_commands.motor_power = 60;
-		turn_right();
+        left_side_escape();
 	} else if(g_sensor_readings.line_right) {
     //If one line detected on the right, turn left
         //Serial.println("Turning Left");
-        g_motor_commands.motor_power = 60;
-		turn_left();
+        right_side_escape();
 	} else {
     //If no bounds detected, search for opponent
 		update_object_sensors();
@@ -294,20 +312,48 @@ void reverse_escape() {
 		g_motor_commands.motor_power = 255;
 		dir_reverse();
 		// revers set to high speed so can counter forward momentum if needed.
-		delay(100);
+		delay(500);
 		line_check();
 	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
-	if(g_motor_commands.last_seen_right == true) {
+	if(g_sensor_readings.last_seen_right == true) {
 		g_motor_commands.motor_power = 60;
 		turn_right();
 	} else {
 		g_motor_commands.motor_power = 60;
 		turn_left();
 	}
-	delay(25);
+	delay(200);
 	g_motor_commands.motor_power = 0;
 	dir_forward();
 	return;
+}
+
+void left_side_escape() {
+    do {
+		g_motor_commands.motor_power = 100;
+		dir_reverse();
+		// revers set to high speed so can counter forward momentum if needed.
+		delay(150);
+		line_check();
+	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
+    g_motor_commands.motor_power = 60;
+    turn_right();
+    delay(200);
+    return;
+}
+
+void right_side_escape() {
+    do {
+		g_motor_commands.motor_power = 100;
+		dir_reverse();
+		// revers set to high speed so can counter forward momentum if needed.
+		delay(150);
+		line_check();
+	} while(g_sensor_readings.line_left && g_sensor_readings.line_right);
+    g_motor_commands.motor_power = 60;
+    turn_left();
+    delay(200);
+    return;
 }
 
 
@@ -318,7 +364,7 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 		if(g_sensor_readings.last_seen_right){
 			g_motor_commands.motor_power = 60;
 			turn_right();
-            delay(100);
+            delay(200);
             g_motor_commands.motor_power = 0;
             dir_forward();
             //Serial.println("Stopped");
@@ -327,7 +373,7 @@ void search_attack() {// Searches for the opponent, if opponent found to be in r
 		}else{
 			g_motor_commands.motor_power = 60;
 			turn_left();
-            delay(100);
+            delay(200);
             g_motor_commands.motor_power = 0;
             dir_forward();
             //Serial.println("Stopped");
@@ -365,20 +411,23 @@ void update_motor() {
 	int RMOTORPWR = 0;
 
 	if(g_motor_commands.turn == -1 && g_motor_commands.forward == true) {
+        // Left Turn
 		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_2, HIGH);
-		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
+		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR * LMOTOR_TURN_CORRECTION_FACTOR;
 		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR * RMOTOR_TURN_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 1 && g_motor_commands.forward == true) {
+        // Right Turn
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_2, LOW);
 		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR * LMOTOR_TURN_CORRECTION_FACTOR;
-		RMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
+		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR * RMOTOR_TURN_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == true) {
+        // Forwards
 		digitalWrite(LMOTOR_DIR_PIN_1, LOW);
 		digitalWrite(LMOTOR_DIR_PIN_2, HIGH);
 		digitalWrite(RMOTOR_DIR_PIN_1, LOW);
@@ -386,6 +435,7 @@ void update_motor() {
 		LMOTORPWR = g_motor_commands.motor_power * LMOTOR_CORRECTION_FACTOR;
 		RMOTORPWR = g_motor_commands.motor_power * RMOTOR_CORRECTION_FACTOR;
 	} else if(g_motor_commands.turn == 0 && g_motor_commands.forward == false) {
+        // Reverse
 		digitalWrite(LMOTOR_DIR_PIN_1, HIGH);
 		digitalWrite(LMOTOR_DIR_PIN_2, LOW);
 		digitalWrite(RMOTOR_DIR_PIN_1, HIGH);
