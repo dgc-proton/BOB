@@ -55,11 +55,11 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 0.4; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 2500  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 2500  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 300  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 300  // based on manual callibration
 
 //Object sensors
-#define RING_SIZE 600
+#define RING_SIZE 500
 
 #define LOBJSENSOR_TRIG 16
 #define LOBJSENSOR_ECHO 17
@@ -245,25 +245,25 @@ void line_check() {
     Serial.println(diff);
 	if(diff < LINE_LEFT_THRESHOLD){
 		g_sensor_readings.line_left = true;
-        g_sensor_readings.line_left_last_seen = micros();
-	} else if (micros() - g_sensor_readings.line_left_last_seen > 10000) {
+        g_sensor_readings.line_left_last_seen = millis();
+	} else if (millis() - g_sensor_readings.line_left_last_seen > 10) {
 		g_sensor_readings.line_left = false;
 	}
 
-  pinMode(LINE_RIGHT_PIN, OUTPUT);
-  digitalWrite(LINE_RIGHT_PIN, HIGH);  
-  delayMicroseconds(10);
-  pinMode(LINE_RIGHT_PIN, INPUT);
-  time = micros();
-  //time how long the input is HIGH, but quit after 3ms as nothing happens after that
-  while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
-  diff = micros() - time;
-  Serial.print("Right:");
-  Serial.println(diff);
+    pinMode(LINE_RIGHT_PIN, OUTPUT);
+    digitalWrite(LINE_RIGHT_PIN, HIGH);  
+    delayMicroseconds(10);
+    pinMode(LINE_RIGHT_PIN, INPUT);
+    time = micros();
+    //time how long the input is HIGH, but quit after 3ms as nothing happens after that
+    while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
+    diff = micros() - time;
+    Serial.print("Right:");
+    Serial.println(diff);
 	if(diff < LINE_RIGHT_THRESHOLD){
 		g_sensor_readings.line_right = true;
-        g_sensor_readings.line_right_last_seen = micros();
-	} else if (micros() - g_sensor_readings.line_right_last_seen > 10000) {
+        g_sensor_readings.line_right_last_seen = millis();
+	} else if (millis() - g_sensor_readings.line_right_last_seen > 10) {
 	    g_sensor_readings.line_left = false;
     }
 }
