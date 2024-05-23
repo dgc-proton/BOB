@@ -29,7 +29,7 @@ Definitions
 #define LMOTOR_DIR_PIN_1 12  // swapped the pin definitions around because motors were running in reverese
 #define LMOTOR_DIR_PIN_2 14
 const float LMOTOR_CORRECTION_FACTOR = 1; // must be <=1
-const float LMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
+const float LMOTOR_TURN_CORRECTION_FACTOR = 0.4; // motors slower in reverse
 
 #if LMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -40,7 +40,7 @@ const float LMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
 #define RMOTOR_DIR_PIN_2 32  // swapped the pin definitions around because motors were running in reverese
 #define RMOTOR_DIR_PIN_1 4
 const float RMOTOR_CORRECTION_FACTOR = 1; // must be <=1
-const float RMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
+const float RMOTOR_TURN_CORRECTION_FACTOR = 0.4; // motors slower in reverse
 
 #if RMOTOR_CORRECTION_FACTOR > 1
 	#error Motor correction factors must be less than or equal to 1
@@ -55,8 +55,8 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 0.2; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 2500  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 2500  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 1000  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 1000  // based on manual callibration
 
 //Object sensors
 #define RING_SIZE 600
@@ -231,6 +231,9 @@ void line_check() {
     //Update values for lines sensed from the QRE1113 **DIGITAL** breakout board sensors 
   //Lower numbers mean more refleacive, more than 3000 means nothing was reflected
   //(testing on black tape and white masking tape suggest anything below 150 is a white line)
+  if (min(g_sensor_readings.object_left,g_sensor_readings.object_right) < 100) {
+    return;
+  }
   pinMode(LINE_LEFT_PIN, OUTPUT);
   digitalWrite(LINE_LEFT_PIN, HIGH);  
   delayMicroseconds(10);
@@ -239,7 +242,7 @@ void line_check() {
   //time how long the input is HIGH, but quit after 3ms as nothing happens after that
   while (digitalRead(LINE_LEFT_PIN) == HIGH && micros() - time < 3000);
   int diff = micros() - time;
-  //Serial.print("Left:");
+  Serial.print("Left:");
   Serial.println(diff);
 	if(diff < LINE_LEFT_THRESHOLD){
 		g_sensor_readings.line_left = true;
@@ -255,7 +258,7 @@ void line_check() {
   //time how long the input is HIGH, but quit after 3ms as nothing happens after that
   while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
   diff = micros() - time;
-  //Serial.print("Right:");
+  Serial.print("Right:");
   Serial.println(diff);
 	if(diff < LINE_RIGHT_THRESHOLD){
 		g_sensor_readings.line_right = true;
