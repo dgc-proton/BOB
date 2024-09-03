@@ -55,11 +55,11 @@ const float RMOTOR_TURN_CORRECTION_FACTOR = 0.4; // motors slower in reverse
 #define LINE_LEFT_POWER_PIN 26
 #define LINE_RIGHT_PIN 25
 #define LINE_RIGHT_POWER_PIN 33
-#define LINE_LEFT_THRESHOLD 2000  // based on manual callibration
-#define LINE_RIGHT_THRESHOLD 2000  // based on manual callibration
+#define LINE_LEFT_THRESHOLD 1000  // based on manual callibration
+#define LINE_RIGHT_THRESHOLD 1000  // based on manual callibration
 
 //Object sensors
-#define RING_SIZE 500
+#define RING_SIZE 600
 
 #define LOBJSENSOR_TRIG 16
 #define LOBJSENSOR_ECHO 17
@@ -84,8 +84,6 @@ struct Sensors {
 	float last_seen_right = true;
 	bool line_left = false;
 	bool line_right = false;
-    float line_left_last_seen = 0;
-    float line_right_last_seen = 0;
 } g_sensor_readings;  // the structure name
 
 // stores commands for motor power and steering
@@ -231,41 +229,42 @@ void loop() { //Main Control loop
 
 void line_check() { 
     //Update values for lines sensed from the QRE1113 **DIGITAL** breakout board sensors 
-    //Lower numbers mean more refleacive, more than 3000 means nothing was reflected
-    //(testing on black tape and white masking tape suggest anything below 150 is a white line)
-    pinMode(LINE_LEFT_PIN, OUTPUT);
-    digitalWrite(LINE_LEFT_PIN, HIGH);  
-    delayMicroseconds(10);
-    pinMode(LINE_LEFT_PIN, INPUT);
-    long time = micros();
-    //time how long the input is HIGH, but quit after 3ms as nothing happens after that
-    while (digitalRead(LINE_LEFT_PIN) == HIGH && micros() - time < 3000);
-    int diff = micros() - time;
-    Serial.print("Left:");
-    Serial.println(diff);
+  //Lower numbers mean more refleacive, more than 3000 means nothing was reflected
+  //(testing on black tape and white masking tape suggest anything below 150 is a white line)
+  if (min(g_sensor_readings.object_left,g_sensor_readings.object_right) < 100) {
+    return;
+  }
+  pinMode(LINE_LEFT_PIN, OUTPUT);
+  digitalWrite(LINE_LEFT_PIN, HIGH);  
+  delayMicroseconds(10);
+  pinMode(LINE_LEFT_PIN, INPUT);
+  long time = micros();
+  //time how long the input is HIGH, but quit after 3ms as nothing happens after that
+  while (digitalRead(LINE_LEFT_PIN) == HIGH && micros() - time < 3000);
+  int diff = micros() - time;
+  Serial.print("Left:");
+  Serial.println(diff);
 	if(diff < LINE_LEFT_THRESHOLD){
 		g_sensor_readings.line_left = true;
-        //g_sensor_readings.line_left_last_seen = millis();
-	} else /*if (millis() - g_sensor_readings.line_left_last_seen > 10)*/ {
+	} else {
 		g_sensor_readings.line_left = false;
 	}
 
-    pinMode(LINE_RIGHT_PIN, OUTPUT);
-    digitalWrite(LINE_RIGHT_PIN, HIGH);  
-    delayMicroseconds(10);
-    pinMode(LINE_RIGHT_PIN, INPUT);
-    time = micros();
-    //time how long the input is HIGH, but quit after 3ms as nothing happens after that
-    while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
-    diff = micros() - time;
-    Serial.print("Right:");
-    Serial.println(diff);
+  pinMode(LINE_RIGHT_PIN, OUTPUT);
+  digitalWrite(LINE_RIGHT_PIN, HIGH);  
+  delayMicroseconds(10);
+  pinMode(LINE_RIGHT_PIN, INPUT);
+  time = micros();
+  //time how long the input is HIGH, but quit after 3ms as nothing happens after that
+  while (digitalRead(LINE_RIGHT_PIN) == HIGH && micros() - time < 3000);
+  diff = micros() - time;
+  Serial.print("Right:");
+  Serial.println(diff);
 	if(diff < LINE_RIGHT_THRESHOLD){
 		g_sensor_readings.line_right = true;
-        //g_sensor_readings.line_right_last_seen = millis();
-	} else /*if (millis() - g_sensor_readings.line_right_last_seen > 10) */{
-	    g_sensor_readings.line_left = false;
-    }
+	} else {
+	        g_sensor_readings.line_left = false;
+        }
 }
 
 void update_object_sensors() {
@@ -473,43 +472,25 @@ void update_motor() {
 }
 
 void turn_left() {
-    if (g_motor_commands.turn != -1) {
-        stop_motor();
-    }
 	g_motor_commands.turn = -1;
 	g_motor_commands.forward = true;
 	update_motor();
 }
 
 void turn_right() {
-    if (g_motor_commands.turn != 1) {
-        stop_motor();
-    }
 	g_motor_commands.turn = 1;
 	g_motor_commands.forward = true;
 	update_motor();
 }
 
 void dir_forward() {
-    if (g_motor_commands.turn != 0 && g_motor_commands.forward != true) {
-        stop_motor();
-    }
 	g_motor_commands.turn = 0;
 	g_motor_commands.forward = true;
 	update_motor();
 }
 
 void dir_reverse() {
-    if (g_motor_commands.turn != 0 && g_motor_commands.forward != false) {
-        stop_motor();
-    }
 	g_motor_commands.turn = 0;
 	g_motor_commands.forward = false;
 	update_motor();
-}
-
-void stop_motor() {
-    g_motor_commands.turn = 0;
-    g_motor_commands.forward = true;
-    update_motor();
 }
